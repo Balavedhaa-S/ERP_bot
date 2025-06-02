@@ -1,0 +1,37 @@
+﻿# Python virtual environments
+venv/
+.venv/
+ENV/
+env/
+
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*.so
+
+# Environment variables
+.env
+.env.*
+
+# Local databases, logs, and builds
+*.sqlite3
+*.db
+*.log
+
+# Ignore FAISS index and test rag
+rag/rag_pipeline.py
+rag/test_rag.py
+
+# System files
+.DS_Store
+Thumbs.db
+
+# VS Code settings (optional)
+.vscode/
+venv/
+.venv/
+__pycache__/
+*.pyc
+.env
+rag/rag_pipeline.py
+rag/test_rag.py
