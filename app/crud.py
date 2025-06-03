@@ -1,68 +1,83 @@
+# crud.py
 from sqlalchemy.orm import Session
-from app import models, schemas
-import uuid
+#from models import Asset, Vendor, MaintenanceLog, AssetVendorLink
+from app.models import Asset, Vendor, MaintenanceLog, AssetVendorLink
+from app.schemas import AssetCreate, VendorCreate, MaintenanceLogCreate, AssetVendorLinkCreate
+from fastapi import HTTPException
+#from app.schemas import AssetCreate, VendorCreate, MaintenanceLogCreate, AssetVendorLinkCreate
 
-# Department CRUD
-def create_department(db: Session, department: schemas.DepartmentCreate):
-    db_dept = models.Department(
-        id=uuid.uuid4(),
-        name=department.name,
-        head_id=department.head_id
-    )
-    db.add(db_dept)
-    db.commit()
-    db.refresh(db_dept)
-    return db_dept
-
-def get_department(db: Session, dept_id: uuid.UUID):
-    return db.query(models.Department).filter(models.Department.id == dept_id).first()
-
-def get_departments(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Department).offset(skip).limit(limit).all()
-
-
-# Employee CRUD
-def create_employee(db: Session, employee: schemas.EmployeeCreate):
-    db_emp = models.Employee(
-        id=uuid.uuid4(),
-        name=employee.name,
-        email=employee.email,
-        department_id=employee.department_id,
-        designation=employee.designation,
-        date_joined=employee.date_joined
-    )
-    db.add(db_emp)
-    db.commit()
-    db.refresh(db_emp)
-    return db_emp
-
-def get_employee(db: Session, emp_id: uuid.UUID):
-    return db.query(models.Employee).filter(models.Employee.id == emp_id).first()
-
-def get_employees(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Employee).offset(skip).limit(limit).all()
-
-
-# Asset CRUD
-def create_asset(db: Session, asset: schemas.AssetCreate):
-    db_asset = models.Asset(
-        asset_tag=asset.asset_tag,
-        name=asset.name,
-        category=asset.category,
-        location=asset.location,
-        purchase_date=asset.purchase_date,
-        warranty_until=asset.warranty_until,
-        assigned_to=asset.assigned_to,
-        department_id=asset.department_id,
-        status=asset.status
-    )
+# ------------------------ Asset CRUD ------------------------
+def create_asset(db: Session, asset: AssetCreate):
+    db_asset = Asset(**asset.dict())
     db.add(db_asset)
     db.commit()
     db.refresh(db_asset)
     return db_asset
 
 def get_asset(db: Session, asset_id: int):
-    return db.query(models.Asset).filter(models.Asset.id == asset_id).first()
+    asset = db.query(Asset).filter(Asset.id == asset_id).first()
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    return asset
 
-def get_assets(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Asset).offset(skip).limit(limit).all()
+def update_asset(db: Session, asset_id: int, updated_data: dict):
+    db_asset = db.query(Asset).filter(Asset.id == asset_id).first()
+    if not db_asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    for key, value in updated_data.items():
+        setattr(db_asset, key, value)
+    db.commit()
+    return db_asset
+
+def delete_asset(db: Session, asset_id: int):
+    db_asset = db.query(Asset).filter(Asset.id == asset_id).first()
+    if not db_asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    db.delete(db_asset)
+    db.commit()
+    return {"msg": "Deleted successfully"}
+
+# ------------------------ Vendor CRUD ------------------------
+def create_vendor(db: Session, vendor: VendorCreate):
+    db_vendor = Vendor(**vendor.dict())
+    db.add(db_vendor)
+    db.commit()
+    db.refresh(db_vendor)
+    return db_vendor
+
+def get_vendors(db: Session):
+    return db.query(Vendor).all()
+
+# ------------------------ Maintenance Log CRUD ------------------------
+def create_maintenance_log(db: Session, log: MaintenanceLogCreate):
+    db_log = MaintenanceLog(**log.dict())
+    db.add(db_log)
+    db.commit()
+    db.refresh(db_log)
+    return db_log
+
+def get_maintenance_logs(db: Session, asset_id: int):
+    return db.query(MaintenanceLog).filter(MaintenanceLog.asset_id == asset_id).all()
+
+# ------------------------ Asset-Vendor Link CRUD ------------------------
+def create_asset_vendor_link(db: Session, link: AssetVendorLinkCreate):
+    db_link = AssetVendorLink(**link.dict())
+    db.add(db_link)
+    db.commit()
+    db.refresh(db_link)
+    return db_link
+
+# ------------------------ Custom Queries ------------------------
+def get_assets_under_maintenance_by_location(db: Session, location: str):
+    return db.query(Asset).filter(Asset.status == "Under Maintenance", Asset.location == location).all()
+
+def get_service_history_by_asset(db: Session, asset_tag: str):
+    asset = db.query(Asset).filter(Asset.asset_tag == asset_tag).first()
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    return db.query(AssetVendorLink).filter(AssetVendorLink.asset_id == asset.id).all()
+
+def get_last_service_for_asset(db: Session, asset_id: int):
+    return db.query(AssetVendorLink).filter(AssetVendorLink.asset_id == asset_id).order_by(AssetVendorLink.last_service_date.desc()).first()
+
+

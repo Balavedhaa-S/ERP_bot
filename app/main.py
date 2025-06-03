@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 import uuid
@@ -14,12 +15,19 @@ from app.data_loader import load_all_data
 from app.rag_docs import prepare_documents
 from app import models, schemas, crud
 from app.database import engine, get_db,Base
+#from routers import assets, maintenance_logs
+from app.models.base import Base
 
 # LangChain / OpenAI
-from langchain.vectorstores import FAISS
+#from langchain.vectorstores import FAISS
 from langchain.chains import RetrievalQA
-from langchain.llms import OpenAI
+#from langchain.llms import OpenAI
+#from langchain_community.embeddings import OpenAIEmbeddings
 from langchain_community.embeddings import OpenAIEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain_openai import OpenAI, ChatOpenAI
+from langchain_openai import OpenAIEmbeddings
+
 
 # --- Initialize FastAPI ---
 app = FastAPI(
@@ -96,3 +104,47 @@ def read_employee(emp_id: uuid.UUID, db: Session = Depends(get_db)):
 @app.get("/employees/", response_model=list[schemas.Employee])
 def read_employees(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return crud.get_employees(db, skip=skip, limit=limit)
+
+@app.get("/health", tags=["System"])
+def health_check():
+    return {"status": "ok"}
+
+from fastapi import FastAPI
+from app.routers import departments, employees, assets
+from app.database import engine
+from app import models
+
+#models.Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI()
+
+app.include_router(departments.router)
+app.include_router(employees.router)
+app.include_router(assets.router)
+from fastapi import FastAPI
+from app.routers import (
+    assets,
+    departments,
+    employees,
+    maintenance_logs,
+    vendors,
+    asset_vendor_links,
+    custom_queries,
+)
+import uvicorn
+app = FastAPI()
+if __name__ == "__main__":
+   
+    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)
+app.include_router(assets.router)
+app.include_router(departments.router)
+app.include_router(employees.router)
+app.include_router(maintenance_logs.router)
+app.include_router(vendors.router)
+app.include_router(asset_vendor_links.router)
+app.include_router(custom_queries.router)
+
+from fastapi.exceptions import RequestValidationError
+from app.utils.exception_handler import validation_exception_handler
+app.add_exception_handler(RequestValidationError, validation_exception_handler)

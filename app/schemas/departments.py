@@ -8,7 +8,16 @@ class DepartmentBase(BaseModel):
     head_id: Optional[UUID] = None
     
 class DepartmentCreate(DepartmentBase):
-    pass
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "name": "Finance",
+                "description": "Handles company finances and budgeting.",
+                "head_id": "123e4567-e89b-12d3-a456-426614174002"
+            }
+        }
+
+
 
 class Department(DepartmentBase):
     id: UUID

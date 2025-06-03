@@ -13,7 +13,19 @@ class MaintenanceLogBase(BaseModel):
     resolved_date: Optional[datetime]
 
 class MaintenanceLogCreate(MaintenanceLogBase):
-    pass
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "asset_id": 1,
+                "reported_by": "123e4567-e89b-12d3-a456-426614174003",
+                "description": "Battery issue",
+                "status": "Reported",
+                "assigned_technician": "123e4567-e89b-12d3-a456-426614174004",
+                "resolved_date": None
+            }
+        }
+
+
 
 class MaintenanceLog(MaintenanceLogBase):
     id: int

@@ -1,25 +1,16 @@
-# models.py
-
-import enum
-import uuid
-from sqlalchemy import Column, String, Integer, ForeignKey, Date, Enum, Text
+from sqlalchemy import Column, String, Integer, Date, ForeignKey, Enum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from database import Base
-from sqlalchemy.ext.declarative import declarative_base
-
-Base = declarative_base()
+import uuid
 from app.database import Base
+import enum
 
-class AssetStatus(enum.Enum):
-    in_use = "In Use"
-    under_maintenance = "Under Maintenance"
+# Optional: for status field in Asset
+class AssetStatus(str, enum.Enum):
+    available = "Available"
+    assigned = "Assigned"
+    in_maintenance = "In Maintenance"
     retired = "Retired"
-
-class MaintenanceStatus(enum.Enum):
-    reported = "Reported"
-    in_progress = "In Progress"
-    resolved = "Resolved"
 
 class Department(Base):
     __tablename__ = "departments"
@@ -27,74 +18,90 @@ class Department(Base):
     name = Column(String, unique=True, nullable=False)
     head_id = Column(UUID(as_uuid=True), ForeignKey("employees.id"), nullable=True)
 
-    head = relationship("Employee", foreign_keys=[head_id], backref="headed_department")
-    employees = relationship("Employee", back_populates="department")
-    assets = relationship("Asset", back_populates="department")
+    head = relationship("Employee", foreign_keys=[head_id], back_populates="headed_department", uselist=False)
+    employees = relationship("Employee", back_populates="department", cascade="all, delete")
+    assets = relationship("Asset", back_populates="department", cascade="all, delete")
+
 
 class Employee(Base):
     __tablename__ = "employees"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=False)
-    department_id = Column(UUID(as_uuid=True), ForeignKey("departments.id"), nullable=True)
+    department_id = Column(UUID(as_uuid=True), ForeignKey("departments.id"))
     designation = Column(String)
     date_joined = Column(Date)
 
     department = relationship("Department", back_populates="employees")
-    assigned_assets = relationship("Asset", back_populates="assigned_to_emp", foreign_keys='Asset.assigned_to')
-    reported_issues = relationship("MaintenanceLog", back_populates="reporter", foreign_keys='MaintenanceLog.reported_by')
-    assigned_tickets = relationship("MaintenanceLog", back_populates="assigned_technician_emp", foreign_keys='MaintenanceLog.assigned_technician')
+    assets = relationship("Asset", back_populates="assigned_employee")
+    headed_department = relationship("Department", foreign_keys=[Department.head_id], back_populates="head", uselist=False)
+
 
 class Asset(Base):
     __tablename__ = "assets"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    asset_tag = Column(String, unique=True, nullable=False)
+    id = Column(Integer, primary_key=True, index=True)
+    asset_tag = Column(String, unique=True, index=True, nullable=False)
     name = Column(String, nullable=False)
     category = Column(String)
     location = Column(String)
     purchase_date = Column(Date)
     warranty_until = Column(Date)
     assigned_to = Column(UUID(as_uuid=True), ForeignKey("employees.id"), nullable=True)
-    department_id = Column(UUID(as_uuid=True), ForeignKey("departments.id"), nullable=True)
-    status = Column(Enum(AssetStatus), default=AssetStatus.in_use)
+    department_id = Column(UUID(as_uuid=True), ForeignKey("departments.id"))
+    status = Column(Enum(AssetStatus), default=AssetStatus.available)
 
-    assigned_to_emp = relationship("Employee", back_populates="assigned_assets")
+    assigned_employee = relationship("Employee", back_populates="assets")
     department = relationship("Department", back_populates="assets")
-    maintenance_logs = relationship("MaintenanceLog", back_populates="asset")
-    vendor_links = relationship("AssetVendorLink", back_populates="asset")
 
-class MaintenanceLog(Base):
-    __tablename__ = "maintenance_logs"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    asset_id = Column(Integer, ForeignKey("assets.id"), nullable=False)
-    reported_by = Column(UUID(as_uuid=True), ForeignKey("employees.id"), nullable=False)
-    description = Column(Text)
-    status = Column(Enum(MaintenanceStatus), default=MaintenanceStatus.reported)
-    assigned_technician = Column(UUID(as_uuid=True), ForeignKey("employees.id"), nullable=True)
-    resolved_date = Column(Date, nullable=True)
+    vendor_links = relationship(
+        "AssetVendorLink", back_populates="asset", cascade="all, delete"
+    )
+    maintenance_logs = relationship(
+        "MaintenanceLog", back_populates="asset", cascade="all, delete"
+    )
 
-    asset = relationship("Asset", back_populates="maintenance_logs")
-    reporter = relationship("Employee", back_populates="reported_issues", foreign_keys=[reported_by])
-    assigned_technician_emp = relationship("Employee", back_populates="assigned_tickets", foreign_keys=[assigned_technician])
+#from sqlalchemy import Column, String, Integer, Date, ForeignKey, Enum, Text, Table
+#from sqlalchemy.dialects.postgresql import UUID
+#from sqlalchemy.orm import relationship
+#import uuid
+#import enum
+#from app.database import Base  # your Base class import
 
+# Assuming you already have AssetStatus and previous models here...
+
+# Vendor model
 class Vendor(Base):
     __tablename__ = "vendors"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String, nullable=False)
-    contact_person = Column(String)
-    email = Column(String)
-    phone = Column(String)
-    address = Column(String)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False, unique=True)
+    contact_email = Column(String, unique=True, nullable=True)
+    phone_number = Column(String, nullable=True)
+    address = Column(Text, nullable=True)
 
-    asset_links = relationship("AssetVendorLink", back_populates="vendor")
+    # relationship with AssetVendorLink - many-to-many
+    assets = relationship(
+        "AssetVendorLink", back_populates="vendor", cascade="all, delete"
+    )
 
+
+# Association table for many-to-many Asset <-> Vendor relationship
 class AssetVendorLink(Base):
     __tablename__ = "asset_vendor_link"
     id = Column(Integer, primary_key=True, autoincrement=True)
     asset_id = Column(Integer, ForeignKey("assets.id"), nullable=False)
-    vendor_id = Column(Integer, ForeignKey("vendors.id"), nullable=False)
-    service_type = Column(String)
-    last_service_date = Column(Date)
+    vendor_id = Column(UUID(as_uuid=True), ForeignKey("vendors.id"), nullable=False)
 
     asset = relationship("Asset", back_populates="vendor_links")
-    vendor = relationship("Vendor", back_populates="asset_links")
+    vendor = relationship("Vendor", back_populates="assets")
+
+
+# MaintenanceLog model
+class MaintenanceLog(Base):
+    __tablename__ = "maintenance_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    asset_id = Column(Integer, ForeignKey("assets.id"), nullable=False)
+    performed_on = Column(Date, nullable=False)
+    description = Column(Text, nullable=True)
+    performed_by = Column(String, nullable=True)  # could be a person or company name
+
+    asset = relationship("Asset", back_populates="maintenance_logs")

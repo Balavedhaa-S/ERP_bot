@@ -1,9 +1,15 @@
 from datetime import date
 from typing import Optional
 from pydantic import BaseModel, EmailStr
+from uuid import UUID
 import enum
-import uuid
+#from app import schemas
+#from app.schemas import AssetUpdate
 
+
+# --------------------
+# Enum Definitions
+# --------------------
 class AssetStatus(str, enum.Enum):
     in_use = "In Use"
     under_maintenance = "Under Maintenance"
@@ -14,31 +20,29 @@ class MaintenanceStatus(str, enum.Enum):
     in_progress = "In Progress"
     resolved = "Resolved"
 
-class Department(BaseModel):
-    id: uuid.UUID
-    name: str
-    head_id: uuid.UUID
 
-
-
+# --------------------
+# Department Schemas
+# --------------------
 class DepartmentBase(BaseModel):
     name: str
     description: Optional[str] = None
-    head_id: Optional[uuid.UUID] = None
+    head_id: Optional[UUID] = None
 
 class DepartmentCreate(DepartmentBase):
     pass
 
-#class Department(DepartmentBase):
- #   id: uuid.UUID
+class Department(DepartmentBase):
+    id: UUID
 
-  #  class Config:
-  #      orm_mode = True
 
+# --------------------
+# Employee Schemas
+# --------------------
 class EmployeeBase(BaseModel):
     name: str
     email: EmailStr
-    department_id: Optional[uuid.UUID] = None
+    department_id: Optional[UUID] = None
     designation: Optional[str] = None
     date_joined: Optional[date] = None
 
@@ -46,11 +50,15 @@ class EmployeeCreate(EmployeeBase):
     pass
 
 class Employee(EmployeeBase):
-    id: uuid.UUID
+    id: UUID
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
+
+# --------------------
+# Asset Schemas
+# --------------------
 class AssetBase(BaseModel):
     asset_tag: str
     name: str
@@ -58,8 +66,8 @@ class AssetBase(BaseModel):
     location: Optional[str] = None
     purchase_date: Optional[date] = None
     warranty_until: Optional[date] = None
-    assigned_to: Optional[uuid.UUID] = None
-    department_id: Optional[uuid.UUID] = None
+    assigned_to: Optional[UUID] = None
+    department_id: Optional[UUID] = None
     status: AssetStatus = AssetStatus.in_use
 
 class AssetCreate(AssetBase):
@@ -69,14 +77,28 @@ class Asset(AssetBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
+class AssetUpdate(BaseModel):
+    asset_tag: Optional[str] = None
+    name: Optional[str] = None
+    category: Optional[str] = None
+    location: Optional[str] = None
+    purchase_date: Optional[date] = None
+    warranty_until: Optional[date] = None
+    assigned_to: Optional[UUID] = None
+    department_id: Optional[UUID] = None
+    status: Optional[AssetStatus] = None
+
+# --------------------
+# MaintenanceLog Schemas
+# --------------------
 class MaintenanceLogBase(BaseModel):
     asset_id: int
-    reported_by: uuid.UUID
+    reported_by: UUID
     description: Optional[str] = None
     status: MaintenanceStatus = MaintenanceStatus.reported
-    assigned_technician: Optional[uuid.UUID] = None
+    assigned_technician: Optional[UUID] = None
     resolved_date: Optional[date] = None
 
 class MaintenanceLogCreate(MaintenanceLogBase):
@@ -86,8 +108,12 @@ class MaintenanceLog(MaintenanceLogBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
+
+# --------------------
+# Vendor Schemas
+# --------------------
 class VendorBase(BaseModel):
     name: str
     contact_person: Optional[str] = None
@@ -102,8 +128,12 @@ class Vendor(VendorBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
+
+# --------------------
+# AssetVendorLink Schemas
+# --------------------
 class AssetVendorLinkBase(BaseModel):
     asset_id: int
     vendor_id: int
@@ -117,4 +147,4 @@ class AssetVendorLink(AssetVendorLinkBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
