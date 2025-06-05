@@ -2,7 +2,8 @@ from datetime import date
 from typing import Optional
 from pydantic import BaseModel, EmailStr
 from uuid import UUID
-import enum
+#import enum
+from enum import Enum
 #from app import schemas
 #from app.schemas import AssetUpdate
 
@@ -10,12 +11,12 @@ import enum
 # --------------------
 # Enum Definitions
 # --------------------
-class AssetStatus(str, enum.Enum):
+class AssetStatus(str, Enum):
     in_use = "In Use"
     under_maintenance = "Under Maintenance"
     retired = "Retired"
 
-class MaintenanceStatus(str, enum.Enum):
+class MaintenanceStatus(str, Enum):
     reported = "Reported"
     in_progress = "In Progress"
     resolved = "Resolved"
@@ -93,12 +94,16 @@ class AssetUpdate(BaseModel):
 # --------------------
 # MaintenanceLog Schemas
 # --------------------
+class MaintenanceStatus(str, Enum):
+    REPORTED = "Reported"
+    IN_PROGRESS = "In Progress"
+    RESOLVED = "Resolved"
 class MaintenanceLogBase(BaseModel):
     asset_id: int
-    reported_by: UUID
+    reported_by: int
     description: Optional[str] = None
-    status: MaintenanceStatus = MaintenanceStatus.reported
-    assigned_technician: Optional[UUID] = None
+    status: MaintenanceStatus = MaintenanceStatus.REPORTED
+    assigned_technician: Optional[int] = None
     resolved_date: Optional[date] = None
 
 class MaintenanceLogCreate(MaintenanceLogBase):
@@ -120,7 +125,7 @@ class VendorBase(BaseModel):
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
     address: Optional[str] = None
-
+    
 class VendorCreate(VendorBase):
     pass
 

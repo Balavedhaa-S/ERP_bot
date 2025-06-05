@@ -45,3 +45,5 @@ class Asset(Base):
 
     # Relationship back to Employee
     employee = relationship("Employee", back_populates="assets")
+    maintenance_logs = relationship("MaintenanceLog", back_populates="assets", cascade="all, delete-orphan")
+    vendor_links = relationship("AssetVendorLink", back_populates="asset")

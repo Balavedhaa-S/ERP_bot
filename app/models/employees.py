@@ -34,3 +34,5 @@ class Employee(Base):
 
     # Relationship to Asset using string reference
     assets = relationship("Asset", back_populates="employee")
+    reported_logs = relationship("MaintenanceLog", foreign_keys="MaintenanceLog.reported_by", back_populates="reporter")
+    assigned_logs = relationship("MaintenanceLog", foreign_keys="MaintenanceLog.assigned_technician", back_populates="technician")

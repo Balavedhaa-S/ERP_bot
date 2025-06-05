@@ -1,10 +1,10 @@
-# crud.py
+# app/crud.py
+
 from sqlalchemy.orm import Session
-#from models import Asset, Vendor, MaintenanceLog, AssetVendorLink
-from app.models import Asset, Vendor, MaintenanceLog, AssetVendorLink
-from app.schemas import AssetCreate, VendorCreate, MaintenanceLogCreate, AssetVendorLinkCreate
 from fastapi import HTTPException
-#from app.schemas import AssetCreate, VendorCreate, MaintenanceLogCreate, AssetVendorLinkCreate
+
+from app.models import Asset, Vendor, MaintenanceLog, AssetVendorLink, Employee, Department
+from app.schemas import AssetCreate, VendorCreate, MaintenanceLogCreate, AssetVendorLinkCreate
 
 # ------------------------ Asset CRUD ------------------------
 def create_asset(db: Session, asset: AssetCreate):
@@ -67,6 +67,24 @@ def create_asset_vendor_link(db: Session, link: AssetVendorLinkCreate):
     db.refresh(db_link)
     return db_link
 
+def update_asset_vendor_link(db: Session, link_id: int, updated_data: dict):
+    db_link = db.query(AssetVendorLink).filter(AssetVendorLink.id == link_id).first()
+    if not db_link:
+        raise HTTPException(status_code=404, detail="Link not found")
+    for key, value in updated_data.items():
+        setattr(db_link, key, value)
+    db.commit()
+    db.refresh(db_link)
+    return db_link
+
+def delete_asset_vendor_link(db: Session, link_id: int):
+    db_link = db.query(AssetVendorLink).filter(AssetVendorLink.id == link_id).first()
+    if not db_link:
+        raise HTTPException(status_code=404, detail="Link not found")
+    db.delete(db_link)
+    db.commit()
+    return {"msg": "Asset-Vendor link deleted successfully"}
+
 # ------------------------ Custom Queries ------------------------
 def get_assets_under_maintenance_by_location(db: Session, location: str):
     return db.query(Asset).filter(Asset.status == "Under Maintenance", Asset.location == location).all()
@@ -80,4 +98,17 @@ def get_service_history_by_asset(db: Session, asset_tag: str):
 def get_last_service_for_asset(db: Session, asset_id: int):
     return db.query(AssetVendorLink).filter(AssetVendorLink.asset_id == asset_id).order_by(AssetVendorLink.last_service_date.desc()).first()
 
+def get_department_head(db: Session, dept_name: str):
+    return db.query(Employee).join(Department).filter(
+        Department.name == dept_name,
+        Employee.designation.ilike("Head%")
+    ).first()
 
+def get_vendor_for_asset(db: Session, asset_tag: str):
+    asset = db.query(Asset).filter(Asset.asset_tag == asset_tag).first()
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    return db.query(Vendor).join(AssetVendorLink).filter(AssetVendorLink.asset_id == asset.id).first()
+
+def get_assets_assigned_to_employee(db: Session, employee_name: str):
+    return db.query(Asset).join(Employee).filter(Employee.name == employee_name).all()

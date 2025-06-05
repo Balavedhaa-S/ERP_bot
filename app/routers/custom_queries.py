@@ -1,6 +1,9 @@
+# app/routers/custom_queries.py
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
+
 from app import schemas, crud
 from app.database import get_db
 
@@ -20,3 +23,21 @@ def get_last_service(asset_id: int, db: Session = Depends(get_db)):
     if result is None:
         raise HTTPException(status_code=404, detail="No service record found")
     return result
+
+@router.get("/department-head/{dept_name}")
+def get_department_head(dept_name: str, db: Session = Depends(get_db)):
+    result = crud.get_department_head(db, dept_name)
+    if not result:
+        raise HTTPException(status_code=404, detail="No department head found")
+    return {"name": result.name, "email": result.email}
+
+@router.get("/vendor-for-asset/{asset_tag}")
+def get_vendor_for_asset(asset_tag: str, db: Session = Depends(get_db)):
+    result = crud.get_vendor_for_asset(db, asset_tag)
+    if not result:
+        raise HTTPException(status_code=404, detail="No vendor found for asset")
+    return {"vendor_name": result.name, "email": result.email}
+
+@router.get("/assets-assigned-to/{employee_name}", response_model=List[schemas.Asset])
+def get_assets_assigned_to(employee_name: str, db: Session = Depends(get_db)):
+    return crud.get_assets_assigned_to_employee(db, employee_name)

@@ -27,3 +27,9 @@ tqdm==4.67.1
 typing-inspection==0.4.1
 typing_extensions==4.13.2
 uvicorn==0.34.2
+langchain
+langchain-community
+langchain-openai
+psycopg2-binary
+sqlalchemy
+langchain-experimental

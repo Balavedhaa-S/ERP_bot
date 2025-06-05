@@ -1,12 +1,12 @@
-from sqlalchemy import Column, String, Integer, Date, ForeignKey, Enum
+from sqlalchemy import Column, String, Integer, Date, ForeignKey, Enum, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid
 from app.database import Base
-import enum
-
+#import enum
+from enum import Enum
 # Optional: for status field in Asset
-class AssetStatus(str, enum.Enum):
+class AssetStatus(str, Enum):
     available = "Available"
     assigned = "Assigned"
     in_maintenance = "In Maintenance"
@@ -35,7 +35,8 @@ class Employee(Base):
     department = relationship("Department", back_populates="employees")
     assets = relationship("Asset", back_populates="assigned_employee")
     headed_department = relationship("Department", foreign_keys=[Department.head_id], back_populates="head", uselist=False)
-
+    reported_logs = relationship("MaintenanceLog", foreign_keys="MaintenanceLog.reported_by", back_populates="reporter")
+    assigned_logs = relationship("MaintenanceLog", foreign_keys="MaintenanceLog.assigned_technician", back_populates="technician")
 
 class Asset(Base):
     __tablename__ = "assets"
@@ -52,7 +53,7 @@ class Asset(Base):
 
     assigned_employee = relationship("Employee", back_populates="assets")
     department = relationship("Department", back_populates="assets")
-
+    maintenance_logs = relationship("MaintenanceLog", back_populates="asset", cascade="all, delete-orphan") 
     vendor_links = relationship(
         "AssetVendorLink", back_populates="asset", cascade="all, delete"
     )
@@ -96,12 +97,22 @@ class AssetVendorLink(Base):
 
 
 # MaintenanceLog model
+class MaintenanceStatus(Enum):
+    REPORTED = "Reported"
+    IN_PROGRESS = "In Progress"
+    RESOLVED = "Resolved"
+    
 class MaintenanceLog(Base):
     __tablename__ = "maintenance_logs"
+
     id = Column(Integer, primary_key=True, index=True)
     asset_id = Column(Integer, ForeignKey("assets.id"), nullable=False)
-    performed_on = Column(Date, nullable=False)
+    reported_by = Column(Integer, ForeignKey("employees.id"), nullable=False)
     description = Column(Text, nullable=True)
-    performed_by = Column(String, nullable=True)  # could be a person or company name
+    status = Column(Enum(MaintenanceStatus), default=MaintenanceStatus.REPORTED, nullable=False)
+    assigned_technician = Column(Integer, ForeignKey("employees.id"), nullable=True)
+    resolved_date = Column(Date, nullable=True)
 
     asset = relationship("Asset", back_populates="maintenance_logs")
+    reporter = relationship("Employee", foreign_keys=[reported_by])
+    technician = relationship("Employee", foreign_keys=[assigned_technician])
