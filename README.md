@@ -192,7 +192,7 @@ Built using:
 If you have questions or want to contribute:
 
 * 📧 Email: [balavedhaa.larklabsai@gmail.com]
-* 💼 GitHub: [your-username](https://github.com/your-username)
+* 💼 GitHub: [https://github.com/Balavedhaa-S]
 
 ---
 
