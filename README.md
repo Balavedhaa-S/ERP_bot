@@ -191,7 +191,7 @@ Built using:
 
 If you have questions or want to contribute:
 
-* 📧 Email: [your.email@example.com](mailto:your.email@example.com)
+* 📧 Email: [balavedhaa.larklabsai@gmail.com]
 * 💼 GitHub: [your-username](https://github.com/your-username)
 
 ---
