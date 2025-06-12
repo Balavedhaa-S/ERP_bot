@@ -11,7 +11,7 @@ from langchain.chains import RetrievalQA
 from langchain.chat_models import ChatOpenAI
 from langchain.text_splitter import CharacterTextSplitter
 
-from rag.schema_doc import schema_docs
+from app.rag.schema_doc import schema_docs
 
 # ------------------------------
 # 1. Load environment variables
@@ -94,7 +94,7 @@ vector_store.save_local("faiss_index")
 llm = ChatOpenAI(
     temperature=0,
     openai_api_key=openai_api_key,
-    model_name="gpt-3.5-turbo"  # or "gpt-4"
+    model_name="gpt-4.1"  # or "gpt-4"
 )
 
 qa_chain = RetrievalQA.from_chain_type(
